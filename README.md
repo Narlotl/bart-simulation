@@ -21,3 +21,4 @@ Since BART doesn't publish GPS data, this is an estimate of where trains are in 
 - [GTFS static files](https://www.bart.gov/schedules/developers/gtfs)
 - [GTFS-RT](https://www.bart.gov/schedules/developers/gtfs-realtime)
 - [Train lengths](https://api.bart.gov/docs/etd/etd.aspx)
+- The shape data used by the program is based on the [shapes.txt](https://gtfs.org/documentation/schedule/reference/#shapestxt) GTFS file. Points for the stations have been added along each path. The [QGIS](https://qgis.org/) project is in the [gis directory](https://github.com/Narlotl/bart-simulation/tree/main/gis).
