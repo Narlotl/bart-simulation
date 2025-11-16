@@ -195,7 +195,7 @@ const getTrainLengths = async () => {
         for (const destination of station.etd) {
             for (const line of destination.estimate) {
                 // Loop through all in case of something unexpected in the first position
-                const lineName = line.color[0] + line.color.substring(1).toLowerCase() + '-' + line.direction[0];
+                const lineName = line.color[0] + line.color.substring(1).toLowerCase() + '-' + line.direction[0]; // Convert into GTFS line name
                 const departure = lines[lineName] || {};
                 const time = parseInt(line.minutes) || 0; // count "Leaving" as 0 minutes
                 if (!departure.time || time < departure.time) {
@@ -323,16 +323,20 @@ export const updateTrains = async (trains, messageObject) => {
         if (tripId.length === 3)
             // 600 series trains (eBART) are always 3 long
             length = 3;
-        else
+        else {
             // Regular trains use reported length
-            length = trainLengths[stops[0].station.substring(0, 3)][line].length;
+            const arrivalObject = trainLengths[stops[0].station.substring(0, 3)][line];
+            if (arrivalObject)
+                length = arrivalObject.length;
+            else
+                length = 8;
+        }
         const train = new Train(tripId, line, shape, length, points[shape], stops, previousStop, time, messageObject);
         trains.push(train);
     }
-
-    console.log('update', time);
 }
 
+// Testing purposes
 if (process.argv[1].endsWith('gtfs.js')) {
     const trains = [];
     await updateTrains(trains, {

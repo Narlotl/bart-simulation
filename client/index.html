@@ -140,6 +140,8 @@
 
                     message = message.split(',');
                     // id,line,nextStation,arriveTime,speed,shape,length
+                    if (trainMarkers.has(message[0])) // Only add new one if it doesn't exist already
+                        continue;
 
                     const marker = L.marker([0, 0], {icon: frontIcons[message[1]]});
                     marker.line = message[1];
