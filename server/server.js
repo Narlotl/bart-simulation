@@ -21,7 +21,7 @@ const waitForEnter = () =>
 waitForEnter();
 
 const timeSpeed = 1;
-const timeStep = 0.100; // seconds
+let timeStep = 1.000; // seconds
 
 const connections = [];
 
@@ -37,6 +37,8 @@ createServer(async (req, res) => {
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*'
     });
+
+    timeStep = 0.100; // Set step length back to normal when clients are connected
 
     const index = connections.length; // this connection's place in array
     connections.push(res);
@@ -56,6 +58,10 @@ createServer(async (req, res) => {
         console.log('disconnection');
 
         connections.splice(index, 1);
+
+        // Make step length bigger to save resources while not connected to any clients
+        if (connections.length === 0)
+            timeStep = 1.000;
 
         res.end();
     });
