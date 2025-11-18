@@ -4,10 +4,15 @@ import { Train } from './Train.js';
 import { exit } from 'process';
 import unzipper from 'unzipper';
 
+if (!process.env.KEY) {
+    console.error('No API key!');
+    exit(1);
+}
+
 const shapes = JSON.parse(readFileSync('shapes.json', 'utf8'));
 const points = JSON.parse(readFileSync('points.json', 'utf8'));
 
-// Download static GTFS files if they aren't already
+// Download static GTFS files if they aren't already downloaded
 if (!existsSync('gtfs')) {
     console.log('Downloading GTFS static files');
     const buf = await fetch('https://www.bart.gov/dev/schedules/google_transit.zip').then(res => res.arrayBuffer());
@@ -54,15 +59,6 @@ const getPreviousStop = (tripId, shape, firstStop, delay, time, arrive) => {
         // 6XX trains (eBART) always take 7 minutes
         return { // GTFS stop structure
             stopId: shape[2] === '1' ? 'E30-2' /* Yellow-S starting at Antioch */ : 'E20-1' /* Yellow-N starting at Pittsburg Center */,
-            departure: {
-                time: {
-                    low: arrive - 420 + delay
-                }
-            }
-        };
-    if (firstStop.startsWith('C80' /* Pittsburg/Bay Point */) && shape[2] === '1') // Southbound train coming from Pittsburg Center
-        return { // GTFS stop structure
-            stopId: 'E20-2', // Pittsburg Center
             departure: {
                 time: {
                     low: arrive - 420 + delay
@@ -180,10 +176,6 @@ const shapeLineMap = new Map(
     )
 );
 
-if (!process.env.KEY) {
-    console.error('No API key!');
-    exit(1);
-}
 const etdUrl = 'https://api.bart.gov/api/etd.aspx?cmd=etd&orig=ALL&json=y&key=' + process.env.KEY;
 const getTrainLengths = async () => {
     const etds = await fetch(etdUrl).then(res => res.json()).then(data => data.root.station)
