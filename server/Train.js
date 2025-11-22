@@ -132,8 +132,14 @@ export class Train {
         if (!this.nextStation)
             return;
 
-        const distance = this.distanceToNextStop()
-        this.speed = distance / (this.nextStation.arrive - startTime); // m/s
+        this.speed = this.distanceToNextStop() / (this.nextStation.arrive - startTime); // m/s
+        if (isNaN(this.speed)) {
+            // Delete NaN speed trains
+            console.log(this, this.distanceToNextStop());
+            this.speed = 0;
+            this.messageObject.delete.push(this.tripId);
+            return;
+        }
         this.messageObject.update.push(this.tripId + ',' + this.line + ',' + idToStation(this.nextStation.station) + ',' + this.nextStation.arrive + ',' + this.speed);
     }
 
