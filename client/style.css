@@ -1,0 +1,41 @@
+@font-face {
+    font-family: Frutiger;
+    src: url(assets/frutiger.ttf);
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+body, .leaflet-container {
+    font-family: Frutiger !important;
+}
+
+.leaflet-marker-icon.leaflet-div-icon {
+    transition: 0.1s transform;
+}
+
+#map {
+    flex: 1;
+}
+
+.info {
+    background-color: white;
+    padding: 0.5rem;
+    color: black;
+}
+
+#bar {
+    padding: 0.5rem;
+}
+
+#github-link {
+    float: right;
+}
+
+#bar img {
+    max-height: 1em;
+}
