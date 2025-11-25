@@ -6,7 +6,11 @@ import { existsSync, readFileSync } from 'fs';
 
 const sleep = ms => new Promise((resolve, reject) => setTimeout(resolve, ms));
 
-let time = Date.now() / 1000, updateTime = time;
+let time = Date.now() / 1000;
+// Start at nearest whole second because all train times are on seconds
+await sleep((Math.ceil(time) - time) * 1000);
+time = Math.ceil(time);
+let updateTime = time;
 const trains = [];
 
 // Print train list when enter pressed
@@ -24,6 +28,15 @@ waitForEnter();
 
 const timeSpeed = 1;
 let timeStep = 1.000; // seconds
+
+const setTimeStep = () => {
+    if (trains.length === 0)
+        timeStep = 60.000; // Only update every minute when there are no trains
+    else if (connections.length === 0)
+        timeStep = 1.000; // Slow server when no connections
+    else
+        timeStep = 0.100; // Normal speed when there are trains and connections
+}
 
 const connections = [];
 
@@ -53,20 +66,15 @@ createServer(options, async (req, res) => {
         'Access-Control-Allow-Origin': '*'
     });
 
-    timeStep = 0.100; // Set step length back to normal when clients are connected
+    setTimeStep();
 
     const index = connections.length; // this connection's place in array
     connections.push(res);
 
     // Send all current trains to connection
     let creationMessages = 'event: create\ndata: ';
-    for (const train of trains) {
-        if (!train.nextStation) {
-            console.log(train)
-            continue;
-        }
+    for (const train of trains)
         creationMessages += train.tripId + ',' + train.line + ',' + idToStation(train.nextStation.station) + ',' + train.nextStation.arrive + ',' + train.speed + ',' + train.shape + ',' + train.length + ';';
-    }
     res.write(creationMessages + '\n\n');
 
     res.on('close', () => {
@@ -74,9 +82,7 @@ createServer(options, async (req, res) => {
 
         connections.splice(index, 1);
 
-        // Make step length bigger to save resources while not connected to any clients
-        if (connections.length === 0)
-            timeStep = 1.000;
+        setTimeStep();
 
         res.end();
     });
@@ -98,10 +104,11 @@ while (true) {
     // Step through time
 
     // Update trains every 30 seconds
-    if (time >= updateTime) {
-        updateTrains(trains, messages);
-        updateTime += 30 * timeSpeed;
-    }
+    if (time >= updateTime)
+        updateTrains(trains, messages).then(() => {
+            updateTime += 30 * timeSpeed;
+            setTimeStep();
+        });
 
     for (let i = 0; i < trains.length; i++) {
         const event = trains[i].move(time, timeStep, timeSpeed);
