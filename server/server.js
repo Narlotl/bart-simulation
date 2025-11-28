@@ -10,7 +10,7 @@ let time = Date.now() / 1000;
 // Start at nearest whole second because all train times are on seconds
 await sleep((Math.ceil(time) - time) * 1000);
 time = Math.ceil(time);
-let updateTime = time;
+let updateTime = time, updating = false;
 const trains = [];
 
 // Print train list when enter pressed
@@ -106,11 +106,14 @@ while (true) {
     // Step through time
 
     // Update trains every 30 seconds
-    if (time >= updateTime)
+    if (time >= updateTime && !updating) {
+        updating = true; // Since update is non-blocking, don't update if it's running
         updateTrains(trains, messages).then(() => {
             updateTime += 30 * timeSpeed;
             setTimeStep();
+            updating = false;
         });
+    }
 
     for (let i = 0; i < trains.length; i++) {
         const event = trains[i].move(time, timeStep, timeSpeed);
