@@ -70,7 +70,10 @@ const getColor = shape => {
 const paths = new Map();
 fetch('assets/paths.json').then(res => res.json()).then(data => {
     for (const path of data) {
-        const line = L.polyline(path.points, { color: getColor(path.shape) });
+        // Gray line
+        L.polyline(path.points, { color: '#555555' }).addTo(map);
+        // Color line
+        const line = L.polyline(path.points, { weight: 6, color: getColor(path.shape) });
         paths.set(path.shape, line);
     }
 });
