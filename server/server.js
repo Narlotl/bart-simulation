@@ -3,6 +3,7 @@ import { createServer as createServerHTTP } from 'http';
 import { idToStation, updateTrains } from './gtfs.js';
 import { createInterface } from 'node:readline';
 import { existsSync, readFileSync } from 'fs';
+import { createGzip } from 'node:zlib';
 
 const sleep = ms => new Promise((resolve, reject) => setTimeout(resolve, ms));
 
@@ -32,13 +33,13 @@ let timeStep = 1.000; // seconds
 const setTimeStep = () => {
     if (trains.length === 0)
         timeStep = 60.000; // Only update every minute when there are no trains
-    else if (connections.length === 0)
+    else if (connectionStreams.length === 0)
         timeStep = 1.000; // Slow server when no connections
     else
         timeStep = 0.100; // Normal speed when there are trains and connections
 }
 
-const connections = [];
+const connectionStreams = [];
 
 let createServer, options;
 if (!(process.env.CERT && process.env.PRIV_KEY && existsSync(process.env.CERT) && existsSync(process.env.PRIV_KEY))) {
@@ -61,14 +62,18 @@ createServer(options, async (req, res) => {
     // https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
     res.writeHead(200, {
         'Content-Type': 'text/event-stream',
+        'Content-Encoding': 'gzip',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Vary': 'Origin',
         'Access-Control-Allow-Origin': process.env.ENV === 'prod' ? 'https://bart.eliasfretwell.com' : '*'
     });
 
-    const index = connections.length; // This connection's place in array
-    connections.push(res);
+    const index = connectionStreams.length; // This connection's place in array
+
+    const compression = createGzip();
+    compression.pipe(res);
+    connectionStreams.push(compression);
 
     setTimeStep();
 
@@ -77,12 +82,13 @@ createServer(options, async (req, res) => {
     for (const train of trains)
         if (train.nextStation)
             creationMessages += train.tripId + ',' + train.line + ',' + idToStation(train.nextStation.station) + ',' + train.nextStation.arrive + ',' + train.speed + ',' + train.shape + ',' + train.length + ';';
-    res.write(creationMessages + '\n\n');
+    compression.write(creationMessages + '\n\n');
+    compression.flush();
 
     res.on('close', () => {
         console.log('disconnection');
 
-        connections.splice(index, 1);
+        connectionStreams.splice(index, 1);
 
         setTimeStep();
 
@@ -142,9 +148,11 @@ while (true) {
     }
     message += 'event: time\ndata: ' + Math.floor(time) + '\n\n';
 
-    // Send events to all connections
-    for (const con of connections)
-        con.write(message)
+    // Send message to all connections
+    for (const compression of connectionStreams) {
+        compression.write(message);
+        compression.flush();
+    }
 
     await sleep(nextStepTime * 1000 - Date.now()); // Amount of milliseconds until timeStep after the previous step
     time += timeStep * timeSpeed;
